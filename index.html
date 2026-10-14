@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心情日記 Mood Diary</title>
+<style>
+:root{--pink:#f28bb4;--pink2:#ffe6ef;--purple:#a99af5;--blue:#dff3ff;--ink:#51485c;--paper:#fffafd}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#fff2f6,#f5f1ff);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;color:var(--ink)}
+header{padding:28px 16px 22px;text-align:center;background:#fff9;border-bottom:1px solid #f5dce7}
+.logo{font-size:clamp(27px,5vw,42px);font-weight:900;letter-spacing:4px;color:#b76f82}.subtitle{margin-top:5px;color:#8d7a8c}
+nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px;background:#fff9;position:sticky;top:0;z-index:2;backdrop-filter:blur(10px)}
+nav button,.btn{border:0;border-radius:999px;padding:10px 16px;font-size:15px;cursor:pointer;background:white;color:var(--ink);box-shadow:0 2px 8px #9e7b951c}
+nav button.active,.btn.primary{background:var(--pink);color:white}
+main{max-width:900px;margin:20px auto;padding:0 14px 36px}.panel{background:white;border:1px solid #f7dce8;border-radius:22px;padding:20px;margin-bottom:16px;box-shadow:0 8px 24px #987b9a12}
+h2{margin:0 0 14px;font-size:21px;color:#b76f82}.moods{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.mood{border:2px solid transparent;border-radius:17px;padding:14px 4px;background:#fff3d7;cursor:pointer;font-size:15px}.mood:nth-child(2){background:#f0eaff}.mood:nth-child(3){background:#e7f6ff}.mood:nth-child(4){background:#ffe8f1}.mood span{display:block;font-size:30px;margin-bottom:5px}.mood.selected{border-color:var(--pink);transform:translateY(-2px)}
+textarea{width:100%;min-height:115px;border:1px solid #eadde8;border-radius:15px;padding:13px;font:inherit;resize:vertical;background:#fffdfd}input,select{font:inherit}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.result{margin-top:14px;padding:15px;border-radius:15px;background:#fff4f8;display:none;line-height:1.7}.small{font-size:13px;color:#8d8190}.entry{padding:13px;border:1px solid #f0e7f0;border-radius:14px;margin:9px 0;background:#fffdfd}.entry-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.tag{display:inline-block;background:#f4edff;padding:4px 9px;border-radius:99px;font-size:13px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.stat{background:#fff4f8;border-radius:16px;padding:15px;text-align:center}.stat strong{font-size:25px;color:#cf7196;display:block}.bar{height:12px;background:#f5edf4;border-radius:99px;overflow:hidden;margin:6px 0 12px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#f59abd,#aaa0f4);border-radius:99px}.hidden{display:none}footer{text-align:center;padding:20px;color:#95859a;font-size:13px}
+@media(max-width:500px){.moods{grid-template-columns:repeat(2,1fr)}.panel{padding:16px}nav button{padding:9px 12px}}
+</style>
+</head>
+<body>
+<header><div class="logo">♡ 心情日記 ♡</div><div class="subtitle">Mood Diary · 記錄今天的情緒，溫柔照顧自己</div></header>
+<nav>
+<button class="active" data-tab="write">🌷 記錄心情</button><button data-tab="history">📖 歷史紀錄</button><button data-tab="stats">📊 心情統計</button>
+</nav>
+<main>
+<section id="write" class="view">
+<div class="panel"><h2>今天的心情是？</h2><div class="small" id="today"></div>
+<div class="moods">
+<button class="mood" data-mood="開心" data-emoji="😊"><span>😊</span>開心</button>
+<button class="mood" data-mood="焦慮" data-emoji="😟"><span>😟</span>焦慮</button>
+<button class="mood" data-mood="疲累" data-emoji="😴"><span>😴</span>疲累</button>
+<button class="mood" data-mood="難過" data-emoji="🥺"><span>🥺</span>難過</button>
+</div>
+<label for="note"><strong>今天發生了什麼事？</strong></label><textarea id="note" maxlength="500" placeholder="寫下你的心情、今天的小事，或任何想說的話……"></textarea><div class="small"><span id="count">0</span>/500 字</div>
+<div class="actions"><button class="btn primary" id="analyze">✨ 生成心情分析</button><button class="btn" id="save">💗 儲存紀錄</button></div>
+<div id="result" class="result" aria-live="polite"></div><p class="small">※ 分析由網頁內建的簡易文字規則產生，不會把文字傳送到外部服務。</p>
+</div>
+</section>
+<section id="history" class="view hidden"><div class="panel"><h2>📖 歷史紀錄</h2><p class="small">紀錄只儲存在目前這個瀏覽器中。</p><div id="entries"></div><button class="btn" id="clear">清除全部紀錄</button></div></section>
+<section id="stats" class="view hidden"><div class="panel"><h2>📊 心情統計</h2><div class="stats" id="statsCards"></div><h3>各種心情的紀錄比例</h3><div id="bars"></div></div></section>
+</main>
+<footer>Made with ♡ · 每一種心情都值得被好好聽見</footer>
+<script>
+const moods=[{name:'開心',emoji:'😊'},{name:'焦慮',emoji:'😟'},{name:'疲累',emoji:'😴'},{name:'難過',emoji:'🥺'}];
+let selected=null,lastAnalysis='';
+const $=id=>document.getElementById(id);
+const today=new Date();
+$('today').textContent=today.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+document.querySelectorAll('.mood').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mood').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selected={name:b.dataset.mood,emoji:b.dataset.emoji};}));
+$('note').addEventListener('input',()=> $('count').textContent=$('note').value.length);
+function analyzeMood(mood,note){
+ const positive=['開心','快樂','成功','喜歡','完成','期待','感謝','幸福','好玩','滿足'];
+ const stress=['擔心','緊張','害怕','壓力','焦慮','煩','考試','工作','來不及','不安'];
+ const tired=['累','疲倦','睡不著','沒精神','忙','休息'];
+ const sad=['難過','傷心','失望','哭','孤單','委屈','想念'];
+ let words=note.toLowerCase();
+ let hints=[];
+ if(positive.some(w=>words.includes(w)))hints.push('文字中有一些正向或讓你感到滿足的線索。');
+ if(stress.some(w=>words.includes(w)))hints.push('你可能正在面對壓力或不確定感，可以先把事情拆成小步驟。');
+ if(tired.some(w=>words.includes(w)))hints.push('文字提到疲累或忙碌，安排休息、喝水和放鬆時間也很重要。');
+ if(sad.some(w=>words.includes(w)))hints.push('似乎有一些不容易的感受，試著給自己時間，也可以找信任的人聊聊。');
+ if(!hints.length)hints.push('目前沒有明顯的關鍵字線索；你最了解自己的感受，可以想想這件事對你的影響。');
+ const advice={'開心':'把讓你開心的小事記下來，之後也能回頭看看這些珍貴時刻。','焦慮':'試著慢慢呼吸，先選一件現在能處理的小事就好。','疲累':'今天也辛苦了！如果可以，給自己一段不必完成任何事的休息時間。','難過':'不用急著讓自己好起來。允許情緒存在，也可以向信任的人尋求陪伴。'};
+ return `${hints.join(' ')}<br><strong>溫柔提醒：</strong>${advice[mood.name]}<br><span class="small">這是簡易文字提示，不是專業心理或醫療診斷。</span>`;
+}
+$('analyze').addEventListener('click',()=>{if(!selected){alert('請先選擇今天的心情！');return;}lastAnalysis=analyzeMood(selected.name,$('note').value);$('result').innerHTML=`<strong>${selected.emoji} 你的心情：${selected.name}</strong><br>${lastAnalysis}`;$('result').style.display='block';});
+function getEntries(){try{return JSON.parse(localStorage.getItem('moodDiaryEntries')||'[]')}catch(e){return[]}}
+function saveEntries(list){localStorage.setItem('moodDiaryEntries',JSON.stringify(list))}
+$('save').addEventListener('click',()=>{if(!selected){alert('請先選擇今天的心情！');return;}let list=getEntries();list.unshift({id:Date.now(),date:new Date().toISOString(),mood:selected.name,emoji:selected.emoji,note:$('note').value,analysis:lastAnalysis||analyzeMood(selected.name,$('note').value)});saveEntries(list);alert('已儲存今天的心情！');$('note').value='';$('count').textContent='0';$('result').style.display='none';renderHistory();renderStats();});
+function renderHistory(){let list=getEntries();$('entries').innerHTML=list.length?list.map(e=>`<article class="entry"><div class="entry-top"><strong>${e.emoji} ${e.mood}</strong><span class="small">${new Date(e.date).toLocaleString('zh-TW')}</span></div><p>${escapeHtml(e.note||'（沒有填寫文字）')}</p><details><summary>查看心情回饋</summary><p>${e.analysis||''}</p></details><button class="btn" onclick="deleteEntry(${e.id})">刪除此筆</button></article>`).join(''):'<p>還沒有紀錄，先寫下今天的心情吧！🌷</p>'}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+window.deleteEntry=id=>{saveEntries(getEntries().filter(e=>e.id!==id));renderHistory();renderStats()}
+$('clear').addEventListener('click',()=>{if(confirm('確定要清除所有心情紀錄嗎？此動作無法復原。')){saveEntries([]);renderHistory();renderStats();}});
+function renderStats(){let list=getEntries(),total=list.length;let counts=Object.fromEntries(moods.map(m=>[m.name,list.filter(e=>e.mood===m.name).length]));$('statsCards').innerHTML=`<div class="stat"><strong>${total}</strong>總紀錄數</div><div class="stat"><strong>${total?list.filter(e=>new Date(e.date)>new Date(Date.now()-7*86400000)).length:0}</strong>近 7 天</div><div class="stat"><strong>${total?(Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0]&&counts[Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0]]>0?Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0]:'—'):'—'}</strong>最常見心情</div>`;$('bars').innerHTML=moods.map(m=>`<div>${m.emoji} ${m.name} · ${counts[m.name]} 次<div class="bar"><i style="width:${total?counts[m.name]/total*100:0}%"></i></div></div>`).join('')}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(b.dataset.tab).classList.remove('hidden');if(b.dataset.tab==='history')renderHistory();if(b.dataset.tab==='stats')renderStats()}));
+renderHistory();renderStats();
+</script>
+</body></html>
